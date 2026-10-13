@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PayFlow – QA automation interview sandbox
 
-## Getting Started
+A deliberately "legacy" Next.js app for QA automation interviews. Candidates write automated tests against it.
+The code is intentionally inconsistent. Don't clean it up: that's the point.
 
-First, run the development server:
+## Flows
+
+| Flow | Route |
+|---|---|
+| Register (sends a confirmation email) | `/register` → email link → `/verify?token=…` |
+| Login | `/login` (demo: `demo@payflow.test` / `Demo1234!`, comes with 12 seeded payments) |
+| Dashboard (stats, recent payments) | `/dashboard` |
+| Create payment (validated form, sends claim-code email) | `/dashboard/payments/new` |
+| Payments table (search, filter, sort, paging, actions) | `/dashboard/payments` |
+| Edit pending payment (new code is emailed if the recipient email changes) | `/dashboard/payments/:id/edit` |
+| Public claim page (6-digit OTP, then name + IBAN) | `/claim` or `/claim?code=123456` |
+| Dev mailbox (only when SMTP is **not** configured) | `/mailbox` |
+
+Payment lifecycle: `pending` → `claimed` (recipient claims with OTP) → `completed` (sender), or `pending` → `cancelled`.
+
+## What makes it hard to test (interviewer notes)
+
+- **Locators vary by page.** Login has `data-testid`s and ids. Register has none: labels are `<div>`s, inputs only have `name`, and the submit "button" is a `<div>`. The payment form mixes testids, stable ids, React `useId` ids (unstable), name-only fields and placeholder-only fields.
+- **Custom dropdowns** (payment method, priority) are `div`/`ul`/`li` widgets, not `<select>`. Other fields use native selects.
+- **Dynamic fields:** State/Province appears only for US/CA. Description becomes required for category "Other". The ZIP rule depends on the country.
+- **Validation:** blur validation on email/amount/zip only, full validation on submit, an error summary banner, and server-side 422 errors are mirrored.
+- **Legacy table:** rows are built with `innerHTML` and use event delegation. Row ids are index-based (`row_0`…). Action links are `javascript:void(0)`. Search is debounced. The table auto-refreshes every 15s.
+- **Native dialogs:** Cancel uses `window.confirm` and then `window.prompt`. "Clear form" uses `confirm`. "Forgot password" uses `alert`. Set complete uses a custom modal instead.
+- **Timing:** every API call has a random 300–1800 ms delay. Toasts disappear after 3s.
+- **Email:** OTP and verification links must be read from the inbox (Mailinator) or from `/mailbox`. In the email, the OTP sits in `#otp-code` and the verify link is `#verify-link`.
+- **OTP input** is 6 separate boxes with auto-advance. Pasting into the first box fills all six.
+- Each candidate should register their own user. Payments are scoped per user.
+
+## Local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+With no env vars set, data is in memory (it resets on restart) and emails go to `/mailbox` instead of being sent.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy to Vercel (free)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Push the repo and import it in Vercel.
+2. **Storage:** In the project, open Storage → Marketplace → **Upstash (Redis)**, free plan, then connect it to the project. This sets `KV_REST_API_URL` / `KV_REST_API_TOKEN` automatically.
+   The in-memory store is *not* reliable on Vercel: instances don't share memory and get recycled, so data would randomly disappear.
+3. **Email:** Set the SMTP vars (see `.env.example`). Free options:
+   - **Brevo**: 300 emails/day. Verify one sender email address (no domain needed). Host `smtp-relay.brevo.com`, port `587`.
+   - **Gmail**: create an App Password. Host `smtp.gmail.com`, port `465`.
 
-## Learn More
+   Use `@mailinator.com` addresses as recipients. Their public inboxes need no signup.
+4. Set `SESSION_SECRET`. Optionally set `APP_URL` and `RESET_SECRET`.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Reset all data: `curl -X POST https://<app>/api/admin/reset -H "x-reset-secret: $RESET_SECRET"` (the demo data is re-seeded on the next request).
