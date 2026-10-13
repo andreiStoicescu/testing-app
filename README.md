@@ -43,7 +43,7 @@ With no env vars set, data is in memory (it resets on restart) and emails go to 
 ## Deploy to Vercel (free)
 
 1. Push the repo and import it in Vercel.
-2. **Storage:** In the project, open Storage → Marketplace → **Upstash (Redis)**, free plan, then connect it to the project. This sets `KV_REST_API_URL` / `KV_REST_API_TOKEN` automatically.
+2. **Storage:** In the project, open Storage → Marketplace → **Upstash (Redis)**, free plan, then connect it to the project. This sets `TESTING_KV_REST_API_URL` / `TESTING_KV_REST_API_TOKEN` automatically (with the `TESTING` prefix).
    The in-memory store is *not* reliable on Vercel: instances don't share memory and get recycled, so data would randomly disappear.
 3. **Email:** Create an API key at https://resend.com/api-keys and set `RESEND_API_KEY` and `MAIL_FROM`.
    With the default sender `onboarding@resend.dev`, Resend only delivers to your own account email.
