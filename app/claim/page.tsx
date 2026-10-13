@@ -144,7 +144,7 @@ export default function ClaimPage() {
               {errors.fullName && <span className="err">{errors.fullName}</span>}
             </div>
             <div className={"form-group" + (errors.iban ? " has-error" : "")}>
-              <label htmlFor="claim-iban">IBAN</label>
+              <label htmlFor="claim-iban">Bank account (IBAN or account number)</label>
               <input id="claim-iban" className="form-control" placeholder="GB82 WEST 1234 5698 7654 32" value={iban} onChange={(e) => setIban(e.target.value)} />
               {errors.iban && <span className="err">{errors.iban}</span>}
             </div>

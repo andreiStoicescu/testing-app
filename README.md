@@ -13,7 +13,7 @@ The code is intentionally inconsistent. Don't clean it up: that's the point.
 | Create payment (validated form, sends claim-code email) | `/dashboard/payments/new` |
 | Payments table (search, filter, sort, paging, actions) | `/dashboard/payments` |
 | Edit pending payment (new code is emailed if the recipient email changes) | `/dashboard/payments/:id/edit` |
-| Public claim page (6-digit OTP, then name + IBAN) | `/claim` or `/claim?code=123456` |
+| Public claim page (6-digit OTP, then name + bank account, more than 8 characters) | `/claim` or `/claim?code=123456` |
 | Dev mailbox (only when `RESEND_API_KEY` is **not** set) | `/mailbox` |
 
 Payment lifecycle: `pending` → `claimed` (recipient claims with OTP) → `completed` (sender), or `pending` → `cancelled`.
