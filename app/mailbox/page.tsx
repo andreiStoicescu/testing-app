@@ -22,7 +22,7 @@ export default function MailboxPage() {
   return (
     <div style={{ maxWidth: 800, margin: "30px auto", padding: "0 16px" }}>
       <h1 className="page-title">Dev mailbox</h1>
-      {disabled && <div className="alert alert-info">The dev mailbox is disabled because real SMTP is configured. Check the recipient inbox instead.</div>}
+      {disabled && <div className="alert alert-info">The dev mailbox is disabled because Resend is configured. Check the recipient inbox instead.</div>}
       {!disabled && (
         <>
           <p className="text-muted">

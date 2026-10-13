@@ -1,31 +1,27 @@
-import nodemailer from "nodemailer";
 import { getTable, saveTable } from "./db";
 
-export const smtpConfigured = !!process.env.SMTP_HOST;
+export const mailConfigured = !!process.env.RESEND_API_KEY;
 
 export async function sendMail(to: string, subject: string, html: string) {
   const outbox = await getTable("outbox");
-  outbox.unshift({ id: Date.now() + "_" + Math.floor(Math.random() * 1000), to, subject, html, sentAt: new Date().toISOString(), smtp: smtpConfigured });
+  outbox.unshift({ id: Date.now() + "_" + Math.floor(Math.random() * 1000), to, subject, html, sentAt: new Date().toISOString(), real: mailConfigured });
   await saveTable("outbox", outbox.slice(0, 50));
 
-  if (!smtpConfigured) {
-    console.log("[MAIL - no SMTP configured] to=" + to + " subject=" + subject);
+  if (!mailConfigured) {
+    console.log("[MAIL - no RESEND_API_KEY] to=" + to + " subject=" + subject);
     return { ok: true, dev: true };
   }
   try {
-    const port = Number(process.env.SMTP_PORT || 587);
-    const transport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: port,
-      secure: port == 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + process.env.RESEND_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: process.env.MAIL_FROM || "PayFlow <onboarding@resend.dev>", to: [to], subject, html }),
     });
-    await transport.sendMail({
-      from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to,
-      subject,
-      html,
-    });
+    if (!r.ok) {
+      const t = await r.text();
+      console.error("mail failed", r.status, t);
+      return { ok: false, error: t };
+    }
     return { ok: true };
   } catch (e: any) {
     console.error("mail failed", e);
